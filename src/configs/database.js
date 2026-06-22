@@ -6,7 +6,6 @@ class Database {
     static #instance = null;
     #pool = null;
 
-
     #createPool() {
         this.#pool = mysql.createPool({
             host: process.env.DB_HOST,
@@ -23,7 +22,6 @@ class Database {
         });
     }
 
-
     static getInstance() {
         if (!Database.#instance) {
             Database.#instance = new Database();
@@ -31,7 +29,6 @@ class Database {
         }
         return Database.#instance;
     }
-
 
     getPool() {
         return this.#pool;
@@ -56,68 +53,79 @@ export async function initializeDatabase() {
         await tempConnection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`);
         await tempConnection.query(`USE \`${dbName}\`;`);
 
-        await tempConnection.query(`DROP TABLE IF EXISTS itens_pedido`)
-        await tempConnection.query(`DROP TABLE IF EXISTS pedidos`)
-        await tempConnection.query(`DROP TABLE IF EXISTS produtos`)
-        await tempConnection.query(`DROP TABLE IF EXISTS categorias`)
-
+        await tempConnection.query(`DROP TABLE IF EXISTS itens_pedido`);
+        await tempConnection.query(`DROP TABLE IF EXISTS pedidos`);
+        await tempConnection.query(`DROP TABLE IF EXISTS produtos`);
+        await tempConnection.query(`DROP TABLE IF EXISTS categorias`);
 
         await tempConnection.query(`SET FOREIGN_KEY_CHECKS = 0;`);
 
         // Tabela: categorias
         await tempConnection.query(`
-            CREATE TABLE IF NOT EXISTS \categorias\ (
-              \id_categoria\ INT NOT NULL AUTO_INCREMENT,
-              \nome_categoria\ VARCHAR(100) NOT NULL,
-              \descricao_categoria\ VARCHAR(255) DEFAULT NULL,
-              PRIMARY KEY (\id_categoria\)
+            CREATE TABLE IF NOT EXISTS categorias (
+              id_categoria INT NOT NULL AUTO_INCREMENT,
+              nome_categoria VARCHAR(100) NOT NULL,
+              descricao_categoria VARCHAR(255) DEFAULT NULL,
+              PRIMARY KEY (id_categoria)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         `);
 
         // Tabela: produtos
         await tempConnection.query(`
-            CREATE TABLE IF NOT EXISTS \produtos\ (
-              \id_produto\ INT NOT NULL AUTO_INCREMENT,
-              \nome_produto\ VARCHAR(100) NOT NULL,
-              \descricao_produto\ TEXT DEFAULT NULL,
-              \preco_produto\ DECIMAL(10,2) NOT NULL,
-              \imagem_produto\ VARCHAR(255) DEFAULT NULL,
-              \estoque_produto\ INT NOT NULL DEFAULT '0',
-              \id_categoria\ INT NOT NULL,
-              PRIMARY KEY (\id_produto\),
-              CONSTRAINT \fk_produtos_categoria\ FOREIGN KEY (\id_categoria\) REFERENCES \categorias\ (\id_categoria\) ON DELETE RESTRICT ON UPDATE CASCADE
+            CREATE TABLE IF NOT EXISTS produtos (
+              id_produto INT NOT NULL AUTO_INCREMENT,
+              nome_produto VARCHAR(100) NOT NULL,
+              descricao_produto TEXT DEFAULT NULL,
+              preco_produto DECIMAL(10,2) NOT NULL,
+              imagem_produto VARCHAR(255) DEFAULT NULL,
+              estoque_produto INT NOT NULL DEFAULT '0',
+              id_categoria INT NOT NULL,
+              PRIMARY KEY (id_produto),
+              CONSTRAINT fk_produtos_categoria
+                FOREIGN KEY (id_categoria)
+                REFERENCES categorias (id_categoria)
+                ON DELETE RESTRICT
+                ON UPDATE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         `);
 
         // Tabela: pedidos
         await tempConnection.query(`
-            CREATE TABLE IF NOT EXISTS \pedidos\ (
-              \id_pedido\ INT NOT NULL AUTO_INCREMENT,
-              \data_pedido\ DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-              \status_pedido\ ENUM('PENDENTE','PAGO','ENVIADO','ENTREGUE','CANCELADO') NOT NULL DEFAULT 'PENDENTE',
-              \valor_total\ DECIMAL(10,2) NOT NULL DEFAULT '0.00',
-              PRIMARY KEY (\id_pedido\)
+            CREATE TABLE IF NOT EXISTS pedidos (
+              id_pedido INT NOT NULL AUTO_INCREMENT,
+              data_pedido DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              status_pedido ENUM('PENDENTE','PAGO','ENVIADO','ENTREGUE','CANCELADO') NOT NULL DEFAULT 'PENDENTE',
+              valor_total DECIMAL(10,2) NOT NULL DEFAULT '0.00',
+              PRIMARY KEY (id_pedido)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         `);
 
         // Tabela: itens_pedido
         await tempConnection.query(`
-            CREATE TABLE IF NOT EXISTS \itens_pedido\ (
-              \id_item_pedido\ INT NOT NULL AUTO_INCREMENT,
-              \quantidade\ INT NOT NULL,
-              \preco_unitario\ DECIMAL(10,2) NOT NULL,
-              \subtotal\ DECIMAL(10,2) DEFAULT NULL,
-              \id_produto\ INT NOT NULL,
-              \id_pedido\ INT NOT NULL,
-              PRIMARY KEY (\id_item_pedido\),
-              CONSTRAINT \fk_itens_pedido\ FOREIGN KEY (\id_pedido\) REFERENCES \pedidos\ (\id_pedido\) ON DELETE CASCADE ON UPDATE CASCADE,
-              CONSTRAINT \fk_itens_produto\ FOREIGN KEY (\id_produto\) REFERENCES \produtos\ (\id_produto\) ON DELETE RESTRICT ON UPDATE CASCADE
+            CREATE TABLE IF NOT EXISTS itens_pedido (
+              id_item_pedido INT NOT NULL AUTO_INCREMENT,
+              quantidade INT NOT NULL,
+              preco_unitario DECIMAL(10,2) NOT NULL,
+              subtotal DECIMAL(10,2) DEFAULT NULL,
+              id_produto INT NOT NULL,
+              id_pedido INT NOT NULL,
+              PRIMARY KEY (id_item_pedido),
+              CONSTRAINT fk_itens_pedido
+                FOREIGN KEY (id_pedido)
+                REFERENCES pedidos (id_pedido)
+                ON DELETE CASCADE
+                ON UPDATE CASCADE,
+              CONSTRAINT fk_itens_produto
+                FOREIGN KEY (id_produto)
+                REFERENCES produtos (id_produto)
+                ON DELETE RESTRICT
+                ON UPDATE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         `);
 
-        await tempConnection.query(SET `FOREIGN_KEY_CHECKS = 1;`);
+        await tempConnection.query(`SET FOREIGN_KEY_CHECKS = 1;`);
 
-        await tempConnection.end(); // Fecha a conexão temporária de setup
+        await tempConnection.end();
         console.log("Banco de dados e tabelas checados com sucesso.");
     } catch (error) {
         console.error("Erro ao criar o banco ou as tabelas:", error);
